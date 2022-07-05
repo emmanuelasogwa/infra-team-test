@@ -9,5 +9,5 @@ A Load balancer security group <br />
 Security groups for the Ec2 instances <br />
 A target group which allows the load balancer to route traffic to multiple instances will be created <br />
 Adding of newly created instances to the target group will also be handled by code defined in the configuration files <br />
-
+![Architecure Diagram](architecture diagram.png)
 
