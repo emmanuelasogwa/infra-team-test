@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "us-east-2"
+  region = "ca-central-1"
 
   default_tags {
     tags = {
@@ -25,24 +25,34 @@ module "vpc" {
   private_subnets       = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
   enable_dns_hostnames = true
   enable_dns_support   = true
+  enable_nat_gateway = true
+  single_nat_gateway = true
 }
 
-data "aws_ami" "amazon-linux" {
-  most_recent = true
-  owners      = ["amazon"]
+data "aws_ami" "ubuntu" {
 
-  filter {
-    name   = "name"
-    values = ["amzn-ami-hvm-*-x86_64-ebs"]
-  }
+    most_recent = true
+
+    filter {
+        name   = "name"
+        values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+    }
+
+    filter {
+        name = "virtualization-type"
+        values = ["hvm"]
+    }
+
+    owners = ["099720109477"]
 }
 
 #Autoscaling Configuration
 resource "aws_launch_configuration" "infra_test" {
   name_prefix     = "infra-team-test-"
-  image_id        = data.aws_ami.amazon-linux.id
+  image_id        = data.aws_ami.ubuntu.id
   instance_type   = "t2.micro"
-  key_name        = "testing"
+  key_name        = "test"
+  user_data       = "${file("user-data.sh")}"
   security_groups = [aws_security_group.infra_test_instance.id]
 
   lifecycle {
@@ -52,16 +62,16 @@ resource "aws_launch_configuration" "infra_test" {
 
 resource "aws_autoscaling_group" "infra_test" {
   name                 = "infra_test"
-  min_size             = 2
-  max_size             = 3
-  desired_capacity     = 2
+  min_size             = 1
+  max_size             = 2
+  desired_capacity     = 1
   launch_configuration = aws_launch_configuration.infra_test.name
   vpc_zone_identifier  = module.vpc.private_subnets
   target_group_arns    = [aws_lb_target_group.infra_test.arn]
 
   tag {
     key                 = "Name"
-    value               = "Infrasture Team ASG - infra_test"
+    value               = "Infrastructure Team ASG - infra_test"
     propagate_at_launch = true
   }
 }
@@ -84,7 +94,6 @@ resource "aws_lb_listener" "infra_test" {
     target_group_arn = aws_lb_target_group.infra_test.arn
   }
 }
-
 resource "aws_lb_target_group" "infra_test" {
   name     = "infra-team-test"
   port     = 80
@@ -116,12 +125,11 @@ resource "aws_security_group" "infra_test_instance" {
     from_port       = 0
     to_port         = 0
     protocol        = "-1"
-    security_groups = [aws_security_group.infra_test_lb.id]
+    # security_groups = [aws_security_group.infra_test_lb.id]
+    cidr_blocks =  ["0.0.0.0/0"]
   }
-
   vpc_id = module.vpc.vpc_id
 }
-
 resource "aws_security_group" "infra_test_lb" {
   name = "infra-team-test-lb"
   ingress {
@@ -137,6 +145,5 @@ resource "aws_security_group" "infra_test_lb" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
   vpc_id = module.vpc.vpc_id
 }
