@@ -13,6 +13,6 @@
  sudo apt-get update
  sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin 
  sudo usermod -aG docker ubuntu
- git clone https://github.com/winwinreferral/download.git
+ git clone https://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@github.com/emmanuelasogwa/download.git
  cd download/infra-team-test
 sudo docker compose up
